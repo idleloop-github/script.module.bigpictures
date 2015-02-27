@@ -93,13 +93,23 @@ class BasePlugin(object):
 
     def log(self, msg):
         if XBMC_MODE:
-            xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
-                self.__class__.__name__, msg
-            ))
+            try:
+                xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg
+                ))
+            except UnicodeEncodeError:
+                xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg.encode('utf-8', 'ignore')
+                ))
         else:
-            print('TheBigPictures ScraperPlugin[%s]: %s' % (
-                self.__class__.__name__, msg
-            ))
+            try:
+                print('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg
+                ))
+            except UnicodeEncodeError:
+                print('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg.encode('utf-8', 'ignore')
+                ))
 
     @classmethod
     def get_scrapers(cls, name_list):
