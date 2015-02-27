@@ -489,7 +489,7 @@ class Reddit(BasePlugin):
         tree = self._get_tree(url)
         pic = tree.find('img')['src'] #not sure what this is used for, grab a random picture
         self._albums.append({
-            'title': 'Earthporn',
+            'title': 'EarthPorn',
             'album_id': 1,
             'pic': pic,
             'description': 'Pictures of the earth',
@@ -523,6 +523,48 @@ class Reddit(BasePlugin):
             'description': 'Pictures of the ground',
             'album_url': 'http://www.reddit.com/r/AerialPorn'}
         )
+        self._albums.append({
+            'title': 'ExposurePorn',
+            'album_id': 6,
+            'pic': pic,
+            'description': 'Long exposure photography',
+            'album_url': 'http://www.reddit.com/r/ExposurePorn'}
+        )
+        self._albums.append({
+            'title': 'ViewPorn',
+            'album_id': 7,
+            'pic': pic,
+            'description': 'Rooms with a view',
+            'album_url': 'http://www.reddit.com/r/ViewPorn'}
+        )
+        self._albums.append({
+            'title': 'AdrenalinePorn',
+            'album_id': 8,
+            'pic': pic,
+            'description': 'Eye candy for extreme athletes and adrenaline junkies!',
+            'album_url': 'http://www.reddit.com/r/AdrenalinePorn'}
+        )
+        self._albums.append({
+            'title': 'SummerPorn',
+            'album_id': 9,
+            'pic': pic,
+            'description': 'Soaking in the sun',
+            'album_url': 'http://www.reddit.com/r/SummerPorn'}
+        )
+        self._albums.append({
+            'title': 'CityPorn',
+            'album_id': 10,
+            'pic': pic,
+            'description': 'Beautifuly cityscapes',
+            'album_url': 'http://www.reddit.com/r/CityPorn'}
+        )
+        self._albums.append({
+            'title': 'WaterPorn',
+            'album_id': 11,
+            'pic': pic,
+            'description': 'Waterscapes and aquatics',
+            'album_url': 'http://www.reddit.com/r/WaterPorn'}
+        )
         return self._albums
 
     def _get_photos(self, album_url):
@@ -542,7 +584,7 @@ class Reddit(BasePlugin):
                 continue
             img = photo.find('a', {'class': 'thumbnail may-blank '})
             if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
-                self.log('not a jpg url: %s' % img.get('href'))
+                self.log('no image or not a jpg')
                 continue
             self.log(img.get('href'))
             self._photos[album_url].append({
