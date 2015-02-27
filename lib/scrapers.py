@@ -463,13 +463,41 @@ class Reddit(BasePlugin):
         self._albums = []
         url = 'http://www.reddit.com/r/earthporn'
         tree = self._get_tree(url)
-        pic = tree.find('img')['src']
+        pic = tree.find('img')['src'] #not sure what this is used for, grab a random picture
         self._albums.append({
             'title': 'Earthporn',
             'album_id': 1,
             'pic': pic,
             'description': 'Pictures of the earth',
-            'album_url': 'http://www.reddit.com/r/earthporn'}
+            'album_url': 'http://www.reddit.com/r/EarthPorn'}
+        )
+        self._albums.append({
+            'title': 'SpacePorn',
+            'album_id': 2,
+            'pic': pic,
+            'description': 'Pictures of space',
+            'album_url': 'http://www.reddit.com/r/SpacePorn'}
+        )
+        self._albums.append({
+            'title': 'SeaPorn',
+            'album_id': 3,
+            'pic': pic,
+            'description': 'Pictures of the sea',
+            'album_url': 'http://www.reddit.com/r/SeaPorn'}
+        )
+        self._albums.append({
+            'title': 'BeachPorn',
+            'album_id': 4,
+            'pic': pic,
+            'description': 'Pictures of beaches',
+            'album_url': 'http://www.reddit.com/r/BeachPorn'}
+        )
+        self._albums.append({
+            'title': 'AerialPorn',
+            'album_id': 5,
+            'pic': pic,
+            'description': 'Pictures of the ground',
+            'album_url': 'http://www.reddit.com/r/AerialPorn'}
         )
         return self._albums
 
@@ -477,13 +505,18 @@ class Reddit(BasePlugin):
         self._photos[album_url] = []
         tree = self._get_tree(album_url, language='html')
         album_title = tree.find('title').string
-        print album_title
+        matchPattern = re.compile('.+(\d{4}(x| x |x | x|×| × |× | ×)\d{4}).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
+        self.log(album_title)
         for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
-            print photo
-            img = photo.find('a', {'class': 'thumbnail may-blank '})
-            if not img:
-                continue
+
             description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
+            if not matchPattern.match(description): #skip pictures with low resolutions
+                self.log('resolution too low or no picture title:%s' % description)
+                continue
+            img = photo.find('a', {'class': 'thumbnail may-blank '})
+            if not img or not img.get('href').endswith('.jpg'): #skip entries without pictures and everything thats a jpg
+                self.log('not a jpg url: %s' % img.get('href'))
+                continue
             self._photos[album_url].append({
                 'title': '%d - %s' % (id + 1, album_title),
                 'album_title': album_title,
