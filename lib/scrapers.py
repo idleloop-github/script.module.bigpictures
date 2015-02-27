@@ -485,7 +485,7 @@ class Reddit(BasePlugin):
             'title': 'SpacePorn',
             'album_id': 2,
             'pic': pic,
-            'description': 'Pictures of space',
+            'description': 'High Res Images of Space',
             'album_url': 'http://www.reddit.com/r/SpacePorn'}
         )
         self._albums.append({
@@ -499,7 +499,7 @@ class Reddit(BasePlugin):
             'title': 'BeachPorn',
             'album_id': 4,
             'pic': pic,
-            'description': 'Pictures of beaches',
+            'description': 'High-res images of Beaches from around the globe.',
             'album_url': 'http://www.reddit.com/r/BeachPorn'}
         )
         self._albums.append({
@@ -515,18 +515,22 @@ class Reddit(BasePlugin):
         self._photos[album_url] = []
         tree = self._get_tree(album_url, language='html')
         album_title = tree.find('title').string
-        matchPattern = re.compile('.+(\d{4}(x| x |x | x|×| × |× | ×)\d{4}).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
+        match_size = re.compile('.+((\d{4})(x| x |x | x|×| × |× | ×)(\d{4})).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
+        match_format = re.compile('.+\.jpg(\?1)?$', re.IGNORECASE) #picture format pattern
         self.log(album_title)
         for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
 
             description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
-            if not matchPattern.match(description): #skip pictures with low resolutions
-                self.log('resolution too low or no picture title:%s' % description)
+            match_resulution = match_size.match(description)
+
+            if not match_resulution or match_resulution.group(1) < match_resulution.group(2): #skip pictures with low resolutions
+                self.log('resolution too low, wrong ascpect ratio or no picture title:%s' % description)
                 continue
             img = photo.find('a', {'class': 'thumbnail may-blank '})
-            if not img or not img.get('href').endswith('.jpg'): #skip entries without pictures and everything thats a jpg
+            if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
                 self.log('not a jpg url: %s' % img.get('href'))
                 continue
+            self.log(img.get('href'))
             self._photos[album_url].append({
                 'title': '%d - %s' % (id + 1, album_title),
                 'album_title': album_title,
