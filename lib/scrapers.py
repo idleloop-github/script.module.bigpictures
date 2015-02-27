@@ -20,6 +20,7 @@
 import re
 import json
 import urllib2
+import time
 from BeautifulSoup import BeautifulSoup
 from CommonFunctions import parseDOM, stripTags
 import HTMLParser
@@ -30,6 +31,7 @@ try:
 except ImportError:
     XBMC_MODE = False
 
+RETRY_TIME = 5.0
 
 ALL_SCRAPERS = (
     'TheBigPictures',
@@ -77,11 +79,23 @@ class BasePlugin(object):
             tree = BeautifulSoup(html, convertEntities=language)
         return tree
 
-    def _get_html(self, url):
+    def _get_html(self, url, retries=10):
         self.log('_get_html opening url "%s"' % url)
         req = urllib2.Request(url)
-        html = urllib2.urlopen(req).read()
-        self.log('get_tree received %d bytes' % len(html))
+        html = ''
+        retry_counter=0
+        while True:
+            try:
+                html = urllib2.urlopen(req).read()
+                self.log('get_tree received %d bytes' % len(html))
+                break
+            except urllib2.HTTPError as ex:
+                self.log(ex)
+                retry_counter += retry_counter
+                time.sleep(RETRY_TIME)
+                pass
+            if retry_counter >= retries:
+                break
         return html
 
     def _collapse(self, iterable):
@@ -524,7 +538,7 @@ class Reddit(BasePlugin):
             match_resulution = match_size.match(description)
 
             if not match_resulution or match_resulution.group(1) < match_resulution.group(2): #skip pictures with low resolutions
-                self.log('resolution too low, wrong ascpect ratio or no picture title:%s' % description)
+                self.log('resolution too low, wrong ascpect ratio or no picture title: %s' % description)
                 continue
             img = photo.find('a', {'class': 'thumbnail may-blank '})
             if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
