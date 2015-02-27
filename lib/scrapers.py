@@ -39,6 +39,7 @@ ALL_SCRAPERS = (
     'TotallyCoolPix',
     # 'TimeLightbox',
     # 'NewYorkTimesLens',
+    'Reddit'
 )
 
 
@@ -452,6 +453,46 @@ class NewYorkTimesLens(BasePlugin):
     @staticmethod
     def __text(txt):
         return txt.replace('&#x2019;s', "'")
+
+
+class Reddit(BasePlugin):
+
+    _title = 'Reddit'
+
+    def _get_albums(self):
+        self._albums = []
+        url = 'http://www.reddit.com/r/earthporn'
+        tree = self._get_tree(url)
+        pic = tree.find('img')['src']
+        self._albums.append({
+            'title': 'Earthporn',
+            'album_id': 1,
+            'pic': pic,
+            'description': 'Pictures of the earth',
+            'album_url': 'http://www.reddit.com/r/earthporn'}
+        )
+        return self._albums
+
+    def _get_photos(self, album_url):
+        self._photos[album_url] = []
+        tree = self._get_tree(album_url, language='html')
+        album_title = tree.find('title').string
+        print album_title
+        for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
+            print photo
+            img = photo.find('a', {'class': 'thumbnail may-blank '})
+            if not img:
+                continue
+            description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
+            self._photos[album_url].append({
+                'title': '%d - %s' % (id + 1, album_title),
+                'album_title': album_title,
+                'photo_id': id,
+                'pic': img.get('href'),
+                'description': description,
+                'album_url': album_url
+            })
+        return self._photos[album_url]
 
 
 def get_scrapers(enabled_scrapers=None):
