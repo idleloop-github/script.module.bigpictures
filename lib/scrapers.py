@@ -571,7 +571,7 @@ class Reddit(BasePlugin):
         self._photos[album_url] = []
         tree = self._get_tree(album_url, language='html')
         album_title = tree.find('title').string
-        match_size = re.compile('.+((\d{4})(x| x |x | x|×| × |× | ×)(\d{4})).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
+        match_size = re.compile('.+(([2-9],\d{3}|\d{4,})(x| x |x | x|×| × |× | ×)([2-9],\d{3}|\d{4,})).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
         match_format = re.compile('.+\.jpg(\?1)?$', re.IGNORECASE) #picture format pattern
         self.log(album_title)
         for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
@@ -579,8 +579,11 @@ class Reddit(BasePlugin):
             description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
             match_resulution = match_size.match(description)
 
-            if not match_resulution or match_resulution.group(1) < match_resulution.group(2): #skip pictures with low resolutions
-                self.log('resolution too low, wrong ascpect ratio or no picture title: %s' % description)
+            if not match_resulution: #skip pictures with low resolutions
+                self.log('resolution too low: %s' % description)
+                continue
+            if match_resulution.group(2) < match_resulution.group(4): #skip pictures with low resolutions
+                self.log('wrong aspect ratio or no picture title: %s' % description)
                 continue
             img = photo.find('a', {'class': 'thumbnail may-blank '})
             if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
