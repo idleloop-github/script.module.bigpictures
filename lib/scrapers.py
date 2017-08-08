@@ -20,6 +20,7 @@
 import re
 import json
 import urllib2
+import time
 from BeautifulSoup import BeautifulSoup
 from CommonFunctions import parseDOM, stripTags
 import HTMLParser
@@ -30,12 +31,14 @@ try:
 except ImportError:
     XBMC_MODE = False
 
+RETRY_TIME = 5.0
 
 ALL_SCRAPERS = (
     'TheBigPictures',
     'AtlanticInFocus',
     'TotallyCoolPix',
     'NewYorkTimesLens',
+    'Reddit',
 )
 
 
@@ -73,11 +76,23 @@ class BasePlugin(object):
             tree = BeautifulSoup(html, convertEntities=language)
         return tree
 
-    def _get_html(self, url):
+    def _get_html(self, url, retries=10):
         self.log('_get_html opening url "%s"' % url)
         req = urllib2.Request(url)
-        html = urllib2.urlopen(req).read()
-        self.log('get_tree received %d bytes' % len(html))
+        html = ''
+        retry_counter=0
+        while True:
+            try:
+                html = urllib2.urlopen(req).read()
+                self.log('get_tree received %d bytes' % len(html))
+                break
+            except urllib2.HTTPError as ex:
+                self.log(ex)
+                retry_counter += retry_counter
+                time.sleep(RETRY_TIME)
+                pass
+            if retry_counter >= retries:
+                break
         return html
 
     def _collapse(self, iterable):
@@ -89,13 +104,23 @@ class BasePlugin(object):
 
     def log(self, msg):
         if XBMC_MODE:
-            xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
-                self.__class__.__name__, msg
-            ))
+            try:
+                xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg
+                ))
+            except UnicodeEncodeError:
+                xbmc.log('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg.encode('utf-8', 'ignore')
+                ))
         else:
-            print('TheBigPictures ScraperPlugin[%s]: %s' % (
-                self.__class__.__name__, msg
-            ))
+            try:
+                print('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg
+                ))
+            except UnicodeEncodeError:
+                print('TheBigPictures ScraperPlugin[%s]: %s' % (
+                    self.__class__.__name__, msg.encode('utf-8', 'ignore')
+                ))
 
     @classmethod
     def get_scrapers(cls, name_list):
@@ -307,6 +332,128 @@ class NewYorkTimesLens(BasePlugin):
                'album_url': album_url
                })
 
+        return self._photos[album_url]
+
+
+class Reddit(BasePlugin):
+
+    _title = 'Reddit'
+
+    def _get_albums(self):
+        self._albums = []
+        url = 'http://www.reddit.com/r/earthporn'
+        tree = self._get_tree(url)
+        pic = tree.find('img')['src'] #not sure what this is used for, grab a random picture
+        self._albums.append({
+            'title': 'EarthPorn',
+            'album_id': 1,
+            'pic': pic,
+            'description': 'Pictures of the earth',
+            'album_url': 'http://www.reddit.com/r/EarthPorn'}
+        )
+        self._albums.append({
+            'title': 'SpacePorn',
+            'album_id': 2,
+            'pic': pic,
+            'description': 'High Res Images of Space',
+            'album_url': 'http://www.reddit.com/r/SpacePorn'}
+        )
+        self._albums.append({
+            'title': 'SeaPorn',
+            'album_id': 3,
+            'pic': pic,
+            'description': 'Pictures of the sea',
+            'album_url': 'http://www.reddit.com/r/SeaPorn'}
+        )
+        self._albums.append({
+            'title': 'BeachPorn',
+            'album_id': 4,
+            'pic': pic,
+            'description': 'High-res images of Beaches from around the globe.',
+            'album_url': 'http://www.reddit.com/r/BeachPorn'}
+        )
+        self._albums.append({
+            'title': 'AerialPorn',
+            'album_id': 5,
+            'pic': pic,
+            'description': 'Pictures of the ground',
+            'album_url': 'http://www.reddit.com/r/AerialPorn'}
+        )
+        self._albums.append({
+            'title': 'ExposurePorn',
+            'album_id': 6,
+            'pic': pic,
+            'description': 'Long exposure photography',
+            'album_url': 'http://www.reddit.com/r/ExposurePorn'}
+        )
+        self._albums.append({
+            'title': 'ViewPorn',
+            'album_id': 7,
+            'pic': pic,
+            'description': 'Rooms with a view',
+            'album_url': 'http://www.reddit.com/r/ViewPorn'}
+        )
+        self._albums.append({
+            'title': 'AdrenalinePorn',
+            'album_id': 8,
+            'pic': pic,
+            'description': 'Eye candy for extreme athletes and adrenaline junkies!',
+            'album_url': 'http://www.reddit.com/r/AdrenalinePorn'}
+        )
+        self._albums.append({
+            'title': 'SummerPorn',
+            'album_id': 9,
+            'pic': pic,
+            'description': 'Soaking in the sun',
+            'album_url': 'http://www.reddit.com/r/SummerPorn'}
+        )
+        self._albums.append({
+            'title': 'CityPorn',
+            'album_id': 10,
+            'pic': pic,
+            'description': 'Beautifuly cityscapes',
+            'album_url': 'http://www.reddit.com/r/CityPorn'}
+        )
+        self._albums.append({
+            'title': 'WaterPorn',
+            'album_id': 11,
+            'pic': pic,
+            'description': 'Waterscapes and aquatics',
+            'album_url': 'http://www.reddit.com/r/WaterPorn'}
+        )
+        return self._albums
+
+    def _get_photos(self, album_url):
+        self._photos[album_url] = []
+        tree = self._get_tree(album_url, language='html')
+        album_title = tree.find('title').string
+        match_size = re.compile('.+(([2-9],\d{3}|\d{4,})(x| x |x | x|×| × |× | ×)([2-9],\d{3}|\d{4,})).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
+        match_format = re.compile('.+\.jpg(\?1)?$', re.IGNORECASE) #picture format pattern
+        self.log(album_title)
+        for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
+
+            description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
+            match_resulution = match_size.match(description)
+
+            if not match_resulution: #skip pictures with low resolutions
+                self.log('resolution too low: %s' % description)
+                continue
+            if match_resulution.group(2) < match_resulution.group(4): #skip pictures with low resolutions
+                self.log('wrong aspect ratio or no picture title: %s' % description)
+                continue
+            img = photo.find('a', {'class': 'thumbnail may-blank '})
+            if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
+                self.log('no image or not a jpg')
+                continue
+            self.log(img.get('href'))
+            self._photos[album_url].append({
+                'title': '%d - %s' % (id + 1, album_title),
+                'album_title': album_title,
+                'photo_id': id,
+                'pic': img.get('href'),
+                'description': description,
+                'album_url': album_url
+            })
         return self._photos[album_url]
 
 
