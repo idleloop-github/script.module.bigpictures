@@ -21,6 +21,7 @@ import re
 import json
 import urllib2
 import time
+from random import randint
 from BeautifulSoup import BeautifulSoup
 from CommonFunctions import parseDOM, stripTags
 import HTMLParser
@@ -76,7 +77,7 @@ class BasePlugin(object):
             tree = BeautifulSoup(html, convertEntities=language)
         return tree
 
-    def _get_html(self, url, retries=10):
+    def _get_html(self, url, retries=5):
         self.log('_get_html opening url "%s"' % url)
         req = urllib2.Request(url)
         html = ''
@@ -87,9 +88,11 @@ class BasePlugin(object):
                 self.log('get_tree received %d bytes' % len(html))
                 break
             except urllib2.HTTPError as ex:
-                self.log(ex)
+                self.log('_get_html error: %s' % ex)
+                if (re.match(r'.+HTTP Error 301.+', str(ex))):
+                    raise
                 retry_counter += retry_counter
-                time.sleep(RETRY_TIME)
+                time.sleep(RETRY_TIME + randint(0, 2*retries))
                 pass
             if retry_counter >= retries:
                 break
@@ -338,88 +341,93 @@ class NewYorkTimesLens(BasePlugin):
 class Reddit(BasePlugin):
 
     _title = 'Reddit'
+    URL_PREFIX='http:'
 
     def _get_albums(self):
         self._albums = []
-        url = 'http://www.reddit.com/r/earthporn'
-        tree = self._get_tree(url)
-        pic = tree.find('img')['src'] #not sure what this is used for, grab a random picture
+        #url = self.URL_PREFIX + '//www.reddit.com/r/EarthPorn'
+        #tree = self._get_tree(url)
+        #pic = tree.find('img')['src'] #not sure what this is used for, grab a random picture
+        #if re.match('^//', pic):
+        #    pic=self.URL_PREFIX + pic
+        # reduce as much as possible unnecessary connections to reddit.com to avoid error HTTP 429:
+        pic='https://www.redditstatic.com/icon.png'
         self._albums.append({
             'title': 'EarthPorn',
             'album_id': 1,
             'pic': pic,
             'description': 'Pictures of the earth',
-            'album_url': 'http://www.reddit.com/r/EarthPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/EarthPorn'}
         )
         self._albums.append({
             'title': 'SpacePorn',
             'album_id': 2,
             'pic': pic,
             'description': 'High Res Images of Space',
-            'album_url': 'http://www.reddit.com/r/SpacePorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/SpacePorn'}
         )
         self._albums.append({
             'title': 'SeaPorn',
             'album_id': 3,
             'pic': pic,
             'description': 'Pictures of the sea',
-            'album_url': 'http://www.reddit.com/r/SeaPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/SeaPorn'}
         )
         self._albums.append({
             'title': 'BeachPorn',
             'album_id': 4,
             'pic': pic,
             'description': 'High-res images of Beaches from around the globe.',
-            'album_url': 'http://www.reddit.com/r/BeachPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/BeachPorn'}
         )
         self._albums.append({
             'title': 'AerialPorn',
             'album_id': 5,
             'pic': pic,
             'description': 'Pictures of the ground',
-            'album_url': 'http://www.reddit.com/r/AerialPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/AerialPorn'}
         )
         self._albums.append({
             'title': 'ExposurePorn',
             'album_id': 6,
             'pic': pic,
             'description': 'Long exposure photography',
-            'album_url': 'http://www.reddit.com/r/ExposurePorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/ExposurePorn'}
         )
         self._albums.append({
             'title': 'ViewPorn',
             'album_id': 7,
             'pic': pic,
             'description': 'Rooms with a view',
-            'album_url': 'http://www.reddit.com/r/ViewPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/ViewPorn'}
         )
         self._albums.append({
             'title': 'AdrenalinePorn',
             'album_id': 8,
             'pic': pic,
             'description': 'Eye candy for extreme athletes and adrenaline junkies!',
-            'album_url': 'http://www.reddit.com/r/AdrenalinePorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/AdrenalinePorn'}
         )
         self._albums.append({
             'title': 'SummerPorn',
             'album_id': 9,
             'pic': pic,
             'description': 'Soaking in the sun',
-            'album_url': 'http://www.reddit.com/r/SummerPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/SummerPorn'}
         )
         self._albums.append({
             'title': 'CityPorn',
             'album_id': 10,
             'pic': pic,
             'description': 'Beautifuly cityscapes',
-            'album_url': 'http://www.reddit.com/r/CityPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/CityPorn'}
         )
         self._albums.append({
             'title': 'WaterPorn',
             'album_id': 11,
             'pic': pic,
             'description': 'Waterscapes and aquatics',
-            'album_url': 'http://www.reddit.com/r/WaterPorn'}
+            'album_url': self.URL_PREFIX + '//www.reddit.com/r/WaterPorn'}
         )
         return self._albums
 
@@ -427,33 +435,58 @@ class Reddit(BasePlugin):
         self._photos[album_url] = []
         tree = self._get_tree(album_url, language='html')
         album_title = tree.find('title').string
-        match_size = re.compile('.+(([2-9],\d{3}|\d{4,})(x| x |x | x|×| × |× | ×)([2-9],\d{3}|\d{4,})).*', re.IGNORECASE) #grab all that are bigger than 1000x1000
-        match_format = re.compile('.+\.jpg(\?1)?$', re.IGNORECASE) #picture format pattern
-        self.log(album_title)
-        for id, photo in enumerate(tree.findAll('div', {'class': re.compile('^ thing id-.+')})):
+        match_size = re.compile(r'.+(([\d,]{4,})(\s?[x×]\s?)([\d,]{4,})).*', re.IGNORECASE) # grab all that are bigger than 1000x1000
+        match_format = re.compile(r'\shref=\"(.+?\.jpe?g)\"', re.IGNORECASE) # picture format pattern
+        self.log('album_title =' + album_title)
+        for id, photo in enumerate(tree.findAll('div', {'class': re.compile(r'^ thing id-.+')})):
 
-            description = self._collapse(photo.find('a', {'class': 'title may-blank '}).contents)
-            match_resulution = match_size.match(description)
+            try:
+                description = self._collapse(photo.find('a', {'class': re.compile(r'title may-blank .*')}).contents)
+            except:
+                continue
 
-            if not match_resulution: #skip pictures with low resolutions
-                self.log('resolution too low: %s' % description)
-                continue
-            if match_resulution.group(2) < match_resulution.group(4): #skip pictures with low resolutions
-                self.log('wrong aspect ratio or no picture title: %s' % description)
-                continue
-            img = photo.find('a', {'class': 'thumbnail may-blank '})
-            if not img or not match_format.match(img.get('href')): #skip entries without pictures and everything thats a jpg
+            #match_resolution = match_size.match(description)
+            #if not match_resolution: # skip pictures with low resolutions
+            #    self.log('resolution too low: %s' % description)
+            #    continue
+            ##elif match_resolution.group(2) < match_resolution.group(4): # skip pictures with portrait aspect ratio
+            ##    self.log('wrong aspect ratio or no picture title: %s' % description)
+            ##    continue
+
+            img = photo.find('div', {'class': 'expando expando-uninitialized'})
+            if not img or not match_format.search(str(img)): # extract image href from pseudo-html
                 self.log('no image or not a jpg')
                 continue
-            self.log(img.get('href'))
+            else:
+                pic = match_format.search(str(img)).group(1)
+            self.log('pic= %s' % pic)
+
+            try:
+                author = photo.find('a', {'class': re.compile(r'author may-blank.*')})
+                if author:
+                    author = author.contents[0]
+
+                pic_time = photo.find('time')['title']
+
+            except:
+                author=''
+                pic_time=''
+
+            if author:
+                description+="\n\n(Author: " + author + ")"
+            if pic_time:
+                description+="\n(@ " + pic_time + ")"
+
             self._photos[album_url].append({
                 'title': '%d - %s' % (id + 1, album_title),
                 'album_title': album_title,
                 'photo_id': id,
-                'pic': img.get('href'),
+                'author': author,
+                'pic': pic,
                 'description': description,
-                'album_url': album_url
+                'album_url': album_url,
             })
+
         return self._photos[album_url]
 
 
