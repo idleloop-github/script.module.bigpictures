@@ -1,5 +1,11 @@
 # Kodi addon
 
+## SUPERSEDED
+
+**Please note that this code has been superseded by [script.image.bigpictures](https://github.com/idleloop-github/script.image.bigpictures), where this code has been integrated.**
+
+This repository remains here only for archiving purposes.
+
 ### Photojournalism
 
 This addon provides beautiful albums and photos from some nice photojournalism websites:   
@@ -32,6 +38,15 @@ Forked from [dersphere](https://github.com/dersphere/script.image.bigpictures/tr
 - fixed for Kodi 17
 - fixed 4 scrapers and removed the rest:   
   The Big Picture, AtlanticInFocus, TotallyCoolPix, NewYorkTimesLens
+
+### Contact
+
+[idleloop](https://github.com/idleloop-github) -at- yahoo.com   
+BTC: 1GX726he5TNgnDuG4qG9zrM6CSN7uyga6F
+
+### Original plugin author (until v1.2.0 & v4.2.0):
+
+[Tristan Fischer (dersphere)](https://github.com/dersphere)   
 
 ### License
 
